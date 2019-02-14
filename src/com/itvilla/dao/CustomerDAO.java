@@ -1,10 +1,10 @@
-package com.itvilla.service;
+package com.itvilla.dao;
 
 import java.util.List;
 
 import com.itvilla.entity.Customer;
 
-public interface CustomerService {
+public interface CustomerDAO {
 
 	public List<Customer> getCustomers();
 

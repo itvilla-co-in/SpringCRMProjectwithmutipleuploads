@@ -1,6 +1,10 @@
 package com.itvilla.controller;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,79 +13,161 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.itvilla.dao.CustomerDao;
 import com.itvilla.entity.Customer;
+import com.itvilla.entity.CustomerListContainer;
 import com.itvilla.service.CustomerService;
 
 @Controller
 @RequestMapping("/customer")
 public class CustomerController {
 
+	// need to inject our customer service
 	@Autowired
 	private CustomerService customerService;
 	
-	@RequestMapping("/list")
-	public String listCustomer(Model model) {
-		List<Customer> tempcustomers = customerService.getCustomers();
-		model.addAttribute("custs", tempcustomers);
-		System.out.println("is it getting from db " + tempcustomers);
-		return "list-customers";
+	@GetMapping("/list")
+	public String listCustomers(Model theModel) {
 		
+		// get customers from the service
+		List<Customer> theCustomers = customerService.getCustomers();
+				
+		// add the customers to the model
+		theModel.addAttribute("customers", theCustomers);
+		
+		return "list-customers";
 	}
-	
 	
 	@GetMapping("/showFormForAdd")
-	public String showFormForAdd(Model model) {
-		Customer customer = new Customer();
-		model.addAttribute("cust", customer);
+	public String showFormForAdd(Model theModel) {
+		
+		// create model attribute to bind form data
+		Customer theCustomer = new Customer();
+		
+		theModel.addAttribute("customer", theCustomer);
+		
 		return "customer-form";
 	}
-	
 	
 	@PostMapping("/saveCustomer")
-	public String saveCustomer(@ModelAttribute("cust") Customer thecust){
+	public String saveCustomer(@ModelAttribute("customer") Customer theCustomer) {
 		
-		customerService.saveCustomer(thecust);
+		// save the customer using our service
+		customerService.saveCustomer(theCustomer);	
+		
 		return "redirect:/customer/list";
 	}
 	
-	@RequestMapping("/showFormForUpdate")
+	@GetMapping("/showFormForUpdate")
 	public String showFormForUpdate(@RequestParam("customerId") int theId,
-			Model model) {
+									Model theModel) {
+		
 		// get the customer from our service
-				Customer theCustomer = customerService.getCustomer(theId);	
-				
-				// set customer as a model attribute to pre-populate the form
-				model.addAttribute("cust", theCustomer);
+		Customer theCustomer = customerService.getCustomer(theId);	
+		
+		// set customer as a model attribute to pre-populate the form
+		theModel.addAttribute("customer", theCustomer);
+		
+		// send over to our form		
 		return "customer-form";
-		
 	}
 	
-	@RequestMapping("/delete")
-	public String delete(@RequestParam("customerId") int theId,
-			Model model) {
-		System.out.println("Customer ID is in delete " + theId);
-		 
-		customerService.deleteCustomer(theId);	
+	@GetMapping("/delete")
+	public String deleteCustomer(@RequestParam("customerId") int theId) {
+		
+		// delete the customer
+		customerService.deleteCustomer(theId);
+		
 		return "redirect:/customer/list";
-		
 	}
 	
-	 @PostMapping("/search")
-	    public String searchCustomers(@RequestParam("theSearchName") String theSearchName,
-	                                    Model theModel) {
-	        // search customers from the service
-		 System.out.println("in the search name " + theSearchName);
-	        List<Customer> theCustomers = customerService.searchCustomers(theSearchName);
-	                
-	        // add the customers to the model
-	        theModel.addAttribute("custs", theCustomers);
-	        System.out.println("in the list lets check if seaching dao is working " + theCustomers);
-	        return "list-customers";        
+	
+	@GetMapping("/newListPage")
+	public String newListPage(Model theModel,
+			HttpSession session, 
+            HttpServletRequest request, 
+            @RequestParam(value="f", required=false) String flush,
+            @RequestParam(value="message", required=false) String message) {
+		
+		// create model attribute to bind form data
+		// customer theCustomer = new Customer();
+		
+		//if someone is going to press reset button
+		//then add some dummy rows.
+		// get customers from the service
+		List<Customer> theCustomers = customerService.getCustomers();
+		CustomerListContainer customerListContainer = new CustomerListContainer();
+		
+		if (theCustomers.size() == 0 && flush != null)
+		{
+			theModel.addAttribute("customerListContainer", getDummyPersonListContainer());
+			//session.setAttribute("customerListContainer", getDummyPersonListContainer());
+		}
+		else
+		{
+			customerListContainer.setCustomerList(theCustomers);
+			theModel.addAttribute("customerListContainer", customerListContainer);
+
+		}
+		
+		/*
+		if( flush != null )
+            session.setAttribute("customerListContainer", getDummyPersonListContainer());
+		//if in an existing session there are no customers to display then add some dummy rows.	
+        if( session.getAttribute("customerListContainer") == null )
+            session.setAttribute("customerListContainer", getDummyPersonListContainer());
+		// what if there are already some customers for the first time... 	
+        theModel.addAttribute("customerListContainer", (CustomerListContainer)session.getAttribute("customerListContainer"));
+		
+        if( message != null )
+        	theModel.addAttribute("message", message);
+        theModel.addAttribute("cp", request.getContextPath());
+*/
+        return "listcustomersnew";
+
+	}
+	
+    @RequestMapping(value="/editcustomerlistcontainer", method= RequestMethod.POST)
+    public String editcustomerListContainer(@ModelAttribute CustomerListContainer customerListContainer, HttpSession session) {
+        for( Customer c : customerListContainer.getCustomerList() ) {
+            System.out.println("f Name: " + c.getFirstName());
+            System.out.println("email: " + c.getEmail());
+            System.out.println("l name " + c.getLastName());
+            System.out.println("id " + c.getId());
+            
+        }
+        
+        // first check what rows were modified
+        // check new rows added
+        // ignore unchanged rows
+        //persist modified row or new rows and send updated list back to page..
+        
+        session.setAttribute("customerListContainer",customerListContainer);
+        return "listcustomersnew";
+        //return "redirect:/listcustomersnew?message=Form Submitted Ok. Number of rows is: ["+personListContainer.getPersonList().size()+"]";
+        //return "listcustomersnew?message=Form Submitted Ok. Number of rows is: ["+customerListContainer.getCustomerList().size()+"]";
+    }
+    
+	
+	  private CustomerListContainer getDummyPersonListContainer() {
+	        List<Customer> customerList = new ArrayList<Customer>();
+	        for( int i=0; i<2; i++ ) {
+	        	customerList.add(new Customer(i, "First Name [" + i + "]", "Last Name [" + i + "]", "Email Name [" + i + "]" ));
+	        }
+	        return new CustomerListContainer(customerList);
 	    }
-	 
 	
 	
 }
+
+
+
+
+
+
+
+
+
+

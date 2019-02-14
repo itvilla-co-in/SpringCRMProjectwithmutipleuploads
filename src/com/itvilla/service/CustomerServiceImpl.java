@@ -5,15 +5,16 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.itvilla.dao.*;
-import com.itvilla.entity.*;
+
+import com.itvilla.dao.CustomerDAO;
+import com.itvilla.entity.Customer;
 
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
 	// need to inject customer dao
 	@Autowired
-	private CustomerDao customerDAO;
+	private CustomerDAO customerDAO;
 	
 	@Override
 	@Transactional
@@ -23,29 +24,23 @@ public class CustomerServiceImpl implements CustomerService {
 
 	@Override
 	@Transactional
-	public void saveCustomer(Customer thecust) {
-		 customerDAO.saveCustomer(thecust);
-		
+	public void saveCustomer(Customer theCustomer) {
+
+		customerDAO.saveCustomer(theCustomer);
 	}
 
 	@Override
 	@Transactional
 	public Customer getCustomer(int theId) {
+		
 		return customerDAO.getCustomer(theId);
 	}
 
 	@Override
 	@Transactional
 	public void deleteCustomer(int theId) {
-		customerDAO.deleteCustomer(theId);
 		
-	}
-
-	@Override
-	@Transactional
-	public List<Customer> searchCustomers(String theSearchName) {
-		 
-		return customerDAO.searchCustomers(theSearchName);
+		customerDAO.deleteCustomer(theId);
 	}
 }
 
